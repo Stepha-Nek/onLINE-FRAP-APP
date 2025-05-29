@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ON-lineFRAP</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #ccc, #eee);
+            font-family: Arial, sans-serif;
+        }
+        .app-wrapper {
+            max-width: 750px;
+            margin: 40px auto;
+            background-color: #e6f2ff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #003366;
+            font-size: 28px;
+            margin-bottom: 30px;
+        }
+        .flashes li { color: red; }
+        .form-section { margin-bottom: 25px; }
+        input[type="file"] {
+            padding: 10px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 400px;
+        }
+        input[type="submit"] {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: inline-block;
+            min-width: 250px;
+        }
+        .upload-button { background-color: #007bff; color: white; margin-top: 10px; }
+        .analyze-button { background-color: #28a745; color: white; margin-top: 10px; }
+        .image-container {
+            display: flex;
+            justify-content: center;
+            background-color: black;
+            margin-top: 20px;
+        }
+        .image-container img { max-width: 600px; width: 100%; }
+        pre { background-color: #f4f4f4; padding: 10px; border-radius: 5px; }
+        .form-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .form-row label { display: flex; flex-direction: column; font-weight: bold; font-size: 14px; }
+        .form-row input[type="number"] { width: 80px; padding: 6px; border-radius: 4px; border: 1px solid #ccc; }
+        .icon-label { font-weight: bold; font-size: 16px; margin-bottom: 6px; display: block; }
+        .cropper-line { background: yellow !important; }
+        .cropper-crop-box { border: 2px dashed yellow !important; }
+        .info-note {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="app-wrapper">
+    <h2>ON-lineFRAP</h2>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <ul class="flashes">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-section">
+            <label class="icon-label">📂 Choose a .tif file</label>
+            <input type="file" name="file" accept=".tif" required>
+        </div>
+        <div class="form-section">
+            <input class="upload-button" type="submit" value="📤 Upload and Analyze">
+        </div>
+    </form>
+
+    {% if image_file %}
+        <h3>Uploaded Image</h3>
+        <div class="image-container">
+            <img id="image" src="{{ url_for('static', filename='uploads/' + image_file) }}">
+        </div>
+
+        <p><strong>Image size:</strong> {{ width }} x {{ height }} pixels</p>
+        <div class="info-note">
+            <strong>Note:</strong> For MATLAB-compatible results:<br>
+            • Use a <strong>vertical strip (~10px wide)</strong><br>
+            • Analysis will automatically use rows 0-49 (pre-bleach) and 50+ (post-bleach)
+        </div>
+        <p><strong>Suggested Regions:</strong></p>
+        <pre>{{ suggestion_text }}</pre>
+
+        <form method="POST" action="{{ url_for('analyze') }}">
+            <input type="hidden" name="file" value="{{ tiff_file }}">
+            <input type="hidden" name="bleach_start" value="50"> <!-- Fixed MATLAB post-bleach start -->
+            <input type="hidden" name="y1" value="0"> <!-- Force full height -->
+            <input type="hidden" name="y2" value="{{ height }}">
+
+            <div class="form-row">
+                <label>X1:<input type="number" name="x1" id="x1" value="{{ default_x1 }}"></label>
+                <label>X2:<input type="number" name="x2" id="x2" value="{{ default_x2 }}"></label>
+            </div>
+
+            <div class="form-section">
+                <input class="analyze-button" type="submit" value="📈 Run Analysis">
+            </div>
+        </form>
+    {% endif %}
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+    const image = document.getElementById('image');
+    let cropper;
+
+    function initCropper() {
+        cropper = new Cropper(image, {
+            viewMode: 1,
+            aspectRatio: 0.1,  // Suggests vertical strip
+            autoCropArea: 0.3,
+            responsive: true,
+            crop(event) {
+                // Update X1/X2 (Y1/Y2 are fixed)
+                document.getElementById('x1').value = Math.round(event.detail.x);
+                document.getElementById('x2').value = Math.round(event.detail.x + event.detail.width);
+            },
+            ready() {
+                // Initialize to MATLAB default columns (65-75)
+                this.cropper.setCropBoxData({
+                    left: 65,
+                    width: 10,
+                    top: 0,
+                    height: {{ height|int }}
+                });
+            }
+        });
+    }
+
+    if (image) {
+        if (image.complete) {
+            initCropper();
+        } else {
+            image.onload = initCropper;
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FRAP Analysis Results</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+        .plot-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .plot-container {
+            flex: 1 1 45%;
+            min-width: 400px;
+            max-width: 48%;
+            margin-bottom: 30px;
+        }
+        .full-width-plot {
+            width: 100%;
+            max-width: 960px;
+            margin: 30px auto;
+        }
+        .downloads {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>FRAP Analysis Results</h1>
+
+    <div class="full-width-plot">
+        <h3>Final Fitted Recovery Curve</h3>
+        {{ chart_final | default('') | safe }}
+    </div>
+
+    <h2>Parameter Variation</h2>
+    <div class="plot-grid">
+        <div class="plot-container">
+            <h3>Diffusion Coefficient (D) Variation</h3>
+            {{ chart_d | default('') | safe }}
+        </div>
+        <div class="plot-container">
+            <h3>Mobile Fraction (k) Variation</h3>
+            {{ chart_k | default('') | safe }}
+        </div>
+    </div>
+
+    <h2>Interpretation Summary</h2>
+    <div>
+        {{ interpretation | default('No interpretation available.') | safe }}
+    </div>
+
+    <div class="downloads">
+        <h3>Download Results</h3>
+        <a href="{{ url_for('download', filename=csv_file | default('')) }}">📄 Download Data (CSV)</a><br>
+        <a href="{{ url_for('download', filename=plot_file | default('')) }}">🖼️ Download Plot Image (PNG)</a>
+    </div>
+
+</body>
+</html>

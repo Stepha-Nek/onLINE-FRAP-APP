@@ -1,0 +1,7 @@
+flask
+numpy
+opencv-python
+tifffile
+pandas
+scipy
+plotly
